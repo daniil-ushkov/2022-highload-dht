@@ -98,7 +98,7 @@ public @interface ServiceTest {
             List<Class<?>> maxFactories = getFactories(context);
 
             if (maxFactories.isEmpty()) {
-                throw new IllegalStateException("No Factory declared under ru.mail.polis.test.<username> package");
+                throw new IllegalStateException("No Factory declared under ok.dht.test.<username> package");
             }
 
             return maxFactories.stream().map(c -> {
