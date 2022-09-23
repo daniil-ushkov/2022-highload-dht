@@ -30,6 +30,7 @@ dependencies {
     implementation 'ru.odnoklassniki:one-nio:1.5.0'
 
     //implementation 'jdk.incubator.foreign'
+    implementation 'org.rocksdb:rocksdbjni:7.5.3'
 
     implementation 'org.rocksdb:rocksdbjni:7.5.3'
 
