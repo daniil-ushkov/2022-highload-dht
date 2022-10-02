@@ -11,9 +11,7 @@ import one.nio.http.Path;
 import one.nio.http.Request;
 import one.nio.http.RequestMethod;
 import one.nio.http.Response;
-import one.nio.net.Session;
 import one.nio.server.AcceptorConfig;
-import one.nio.server.SelectorThread;
 import one.nio.util.Utf8;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -37,40 +35,21 @@ public class RocksDBService implements Service {
         } catch (RocksDBException e) {
             throw new IOException(e);
         }
-        server = createHttpServer(createHttpServerConfigFromPort(config.selfPort()));
+        server = new RocksDBHttpServer(createHttpServerConfigFromPort(config.selfPort()));
         server.addRequestHandlers(this);
         server.start();
         return CompletableFuture.completedFuture(null);
     }
 
-    private HttpServer createHttpServer(HttpServerConfig config) throws IOException {
-        return new HttpServer(config) {
-            @Override
-            public void handleDefault(Request request, HttpSession session) throws IOException {
-                Response response = new Response(Response.BAD_REQUEST, Response.EMPTY);
-                session.sendResponse(response);
-            }
-
-            @Override
-            public synchronized void stop() {
-                // HttpServer.stop() doesn't close sockets
-                for (SelectorThread thread : selectors) {
-                    for (Session session : thread.selector) {
-                        session.socket().close();
-                    }
-                }
-
-                super.stop();
-            }
-        };
-    }
-
-    private static HttpServerConfig createHttpServerConfigFromPort(int port) {
-        HttpServerConfig httpConfig = new HttpServerConfig();
+    private static RocksDBHttpServerConfig createHttpServerConfigFromPort(int port) {
+        RocksDBHttpServerConfig httpConfig = new RocksDBHttpServerConfig();
         AcceptorConfig acceptor = new AcceptorConfig();
         acceptor.port = port;
         acceptor.reusePort = true;
         httpConfig.acceptors = new AcceptorConfig[]{acceptor};
+        httpConfig.selectors = 5;
+        httpConfig.workers = 5;
+        httpConfig.queueCapacity = 100;
         return httpConfig;
     }
 
@@ -135,7 +114,7 @@ public class RocksDBService implements Service {
         }
     }
 
-    @ServiceFactory(stage = 1, week = 1, bonuses = "SingleNodeTest#respectFileFolder")
+    @ServiceFactory(stage = 2, week = 1)
     public static class Factory implements ServiceFactory.Factory {
         @Override
         public Service create(ServiceConfig config) {
